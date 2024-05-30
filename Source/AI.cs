@@ -46,62 +46,63 @@ namespace RimGPT
 		//public OpenAIApi OpenAI => new(RimGPTMod.Settings.chatGPTKey);
 		private List<string> history = [];
 
-		public const string defaultPersonality = "You are a commentator watching the player play the popular game, Rimworld.";
+        public const string defaultPersonality = "你是一个正在观看玩家游玩流行游戏《Rimrorld》（边缘世界）的评论员。";
 
-		public string SystemPrompt(Persona currentPersona)
-		{
-			var playerName = Tools.PlayerName();
-			var player = playerName == null ? "the player" : $"the player named '{playerName}'";
-			var otherObservers = RimGPTMod.Settings.personas.Where(p => p != currentPersona).Join(persona => $"'{persona.name}'");
-			var exampleInput = JsonConvert.SerializeObject(new Input
-			{
-				CurrentWindow = "<Info about currently open window>",
-				ActivityFeed = ["Event1", "Event2", "Event3"],
-				PreviousHistoricalKeyEvents = ["OldEvent1", "OldEvent2", "OldEvent3"],
-				LastSpokenText = "<Previous ResponseText, which is the last thing YOU said.>",
-				ColonyRoster = ["Colonist 1", "Colonist 2", "Colonist 3"],
-				ColonySetting = "<A description about the colony and setting>",
-				ResourceData = "<A periodically updated summary of some resources>",
-				RoomsSummary = "<A periodically updated summary, which may never be updated if a setting is disabled by the player, of notable rooms in the colony>",
-				ResearchSummary = "<A periodically updated summary, which may never be updated if a setting is disabled by the player, what's already been researched, what is currently researched, and what is available for research>",
-				EnergySummary = "<A periodically updated summary, which may never be updated if a setting is disabled by the player,A possible report of the colony's power generation and consumption needs>"
+        public string SystemPrompt(Persona currentPersona)
+        {
+            var playerName = Tools.PlayerName();
+            var player = playerName == null ? "玩家" : $"玩家名为'{playerName}'";
+            var otherObservers = RimGPTMod.Settings.personas.Where(p => p != currentPersona).Join(persona => $"'{persona.name}'");
+            var exampleInput = JsonConvert.SerializeObject(new Input
+            {
+                CurrentWindow = "<当前窗口信息>",
+                ActivityFeed = ["事件1", "事件2", "事件3"],
+                PreviousHistoricalKeyEvents = ["历史事件1", "历史事件2", "历史事件3"],
+                LastSpokenText = "<之前相应的文本，即你最近一次说的话>",
+                ColonyRoster = ["殖民者1", "殖民者2", "殖民者3"],
+                ColonySetting = "<游戏中殖民地的设定及描述>",
+                ResourceData = "<一份部分资源的定期更新报告>",
+                RoomsSummary = "<一份定期更新的殖民地房间摘要，如果玩家禁用了某个设置，则该摘要可能永远不会更新>",
+                ResearchSummary = "<一份定期更新的关于已研究内容、当前研究内容以及可供研究的摘要，如果玩家禁用了某个设置，则该摘要可能永远不会更新>",
+                EnergySummary = "<一份定期更新的关于殖民地发电和耗电需求的摘要，如果玩家禁用了某项设置，该摘要可能永远不会更新>"
 
-			}, settings);
-			var exampleOutput = JsonConvert.SerializeObject(new Output
-			{
-				ResponseText = "<New Output>",
-				NewHistoricalKeyEvents = ["OldEventsSummary", "Event 1 and 2", "Event3"]
-			}, settings);
+            }, settings);
+            var exampleOutput = JsonConvert.SerializeObject(new Output
+            {
+                ResponseText = "<最新评论>",
+                NewHistoricalKeyEvents = ["历史事件摘要", "事件1和事件2", "事件3"]
+            }, settings);
 
 
-			return new List<string>
-				{
-						$"You are {currentPersona.name}.\n",
+            return new List<string>
+                {
+                        $"你是{currentPersona.name}。\n",
 						// Adds weight to using its the personality with its responses: as a chronicler, focusing on balanced storytelling, or as an interactor, focusing on personality-driven improvisation.						
-						currentPersona.isChronicler ? "Unless otherwise specified, balance major events and subtle details, and express them in your unique style."
-																				: "Unless otherwise specified, interact reflecting your unique personality, embracing an improvisational approach based on your background, the current situation, and others' actions",
-						$"Unless otherwise specified, ", otherObservers.Any() ? $"your fellow observers are {otherObservers}. " : "",
-						$"Unless otherwise specified, ",(otherObservers.Any() ? $"you are all watching " : "You are watching") + $"'{player}' play Rimworld.\n",
-						$"Your role/personality: {currentPersona.personality.Replace("PLAYERNAME", player)}\n",
-						$"Your input comes from the current game and will be json like this: {exampleInput}\n",
-						$"Your output must only be in json like this: {exampleOutput}\n",
-						$"Limit ResponseText to no more than {currentPersona.phraseMaxWordCount} words.\n",
-						$"Limit NewHistoricalKeyEvents to no more than {currentPersona.historyMaxWordCount} words.\n",
+						currentPersona.isChronicler ? "除非另有说明，否则应兼顾重大事件和微妙细节，并以你的独特风格加以表达。"
+                                                                                : "除非另有说明，否则在互动中要体现自己的独特个性，根据自己的背景、当前情况和他人的行动，采用即兴的方式进行互动。",
+                        $"除非另有说明，", otherObservers.Any() ? $"你的评论员同伴是：{otherObservers}。" : "",
+                        $"除非另有说明，",(otherObservers.Any() ? $"你们都在观看" : "你正在观看") + $"'{player}'游玩《Rimworld》。\n",
+                        $"你的角色/个性是：{currentPersona.personality.Replace("PLAYERNAME", player)}\n",
+                        $"你的输入来自于游戏的情况，并且一定会以这样的JSON格式输入：{exampleInput}\n",
+                        $"你的输出必须遵守这样的JSON格式：{exampleOutput}\n",
+                        $"你需要将ResponseText的长度限制在{currentPersona.phraseMaxWordCount}字内。\n",
+                        $"你需要将NewHistoricalKeyEvents的内容长度限制在{currentPersona.historyMaxWordCount}字内。\n",
 
 						// Encourages the AI to consider how its responses would sound when spoken, ensuring clarity and accessibility.
-						$"When constructing the 'ResponseText', consider vocal clarity and pacing so that it is easily understandable when spoken by Microsoft Azure Speech Services.\n",
+						//$"When constructing the 'ResponseText', consider vocal clarity and pacing so that it is easily understandable when spoken by Microsoft Azure Speech Services.\n",
 						// Prioritizes sources of information.
-						$"Update prioritization: 1. ActivityFeed, 2. Additional Fields (as context).\n",
+						$"更新的优先级为：1.ActivityFeed，2.作为背景的其他信息\n",
 						// Further reinforces the AI's specific personality by resynthesizing different pieces of information and storing it in its own history
-						$"Combine PreviousHistoricalKeyEvents, and each event from the 'ActivityFeed' and synthesize it into a new, concise form for 'NewHistoricalKeyEvents', make sure that the new synthesis matches your persona.\n",
+						$"结合PreviousHistoricalKeyEvents，以及来自ActivityFeed的每个事件，将其组合成一种新的，简洁的NewHistoricalKeyEvents。确保合成的内容符合你的角色。\n",
 						// Guides the AI in understanding the sequence of events, emphasizing the need for coherent and logical responses or interactions.
-						"Items sequence in 'LastSpokenText', 'PreviousHistoricalKeyEvents', and 'ActivityFeed' reflects the event timeline; use it to form coherent responses or interactions.\n",
-						$"Remember: your output MUST be valid JSON and 'NewHistoricalKeyEvents' MUST ONLY contain simple text entries, each encapsulated in quotes as string literals.\n",
-						$"For example, {exampleOutput}. No nested objects, arrays, or non-string data types are allowed within 'NewHistoricalKeyEvents'.\n",
-				}.Join(delimiter: "");
-		}
+						"LastSpokenText、PreviousHistoricalKeyEvents和ActivityFeed中的项目序列反映了事件时间轴；使用它可以形成连贯的回复或交互。\n",
+                        $"记住：你的输出必须是有效的JSON格式，而且NewHistoricalKeyEvents只能包含简单的文本条目，每个条目都用英文引号封装为字符串字面量。\n",
+                        $"例如：{exampleOutput}。NewHistoricalKeyEvents中不允许嵌套对象、数组或非字符串数据类型。\n",
+                        $"你必须保证ResponseText和NewHistoricalKeyEvents中的内容为中文。"
+                }.Join(delimiter: "");
+        }
 
-		private string GetCurrentChatGPTModel()
+        private string GetCurrentChatGPTModel()
 		{
 			Tools.UpdateApiConfigs();
 			if (RimGPTMod.Settings.userApiConfigs == null || RimGPTMod.Settings.userApiConfigs.Any(a => a.Active) == false)
@@ -180,60 +181,60 @@ namespace RimGPT
 			var windowStack = Find.WindowStack;
 			if (Current.Game == null && windowStack != null)
 			{
-				if (windowStack.focusedWindow is not Page page || page == null)
+                if (windowStack.focusedWindow is not Page page || page == null)
+                {
+                    if (WorldRendererUtility.WorldRenderedNow)
+                        gameInput.CurrentWindow = "玩家正在选择开始站点";
+                    else
+                        gameInput.CurrentWindow = "玩家正处在开始界面";
+                }
+                else
 				{
-					if (WorldRendererUtility.WorldRenderedNow)
-						gameInput.CurrentWindow = "The player is selecting the start site";
-					else
-						gameInput.CurrentWindow = "The player is at the start screen";
-				}
-				else
-				{
-					var dialogType = page.GetType().Name.Replace("Page_", "");
-					gameInput.CurrentWindow = $"The player is at the dialog {dialogType}";
-				}
-				// Due to async nature of the game, a reset of history and recordkeeper
-				// may have slipped through the cracks by the time this function is called.
-				// this is to ensure that if all else fails, we don't include any colony data and we clear history (as reset intended)
-				if (gameInput.ColonySetting != "Unknown as of now..." && gameInput.CurrentWindow == "The player is at the start screen")
-				{
+                    var dialogType = page.GetType().Name.Replace("页面_", "");
+                    gameInput.CurrentWindow = $"玩家正在观看对话框{dialogType}";
+                }
+                // Due to async nature of the game, a reset of history and recordkeeper
+                // may have slipped through the cracks by the time this function is called.
+                // this is to ensure that if all else fails, we don't include any colony data and we clear history (as reset intended)
+                if (gameInput.ColonySetting != "Unknown as of now..." && gameInput.CurrentWindow == "玩家正处在开始界面")
+                {
 
-					// I'm not sure why, but Personas are not being reset propery, they tend to have activityfeed of old stuff
-					// and recordKeeper contains colony data still.  I"m guessing the reset unloads a bunch of stuff before
-					// the actual reset could finish (or something...?) 
-					// this ensures the reset happens
-					Personas.Reset();
+                    // I'm not sure why, but Personas are not being reset propery, they tend to have activityfeed of old stuff
+                    // and recordKeeper contains colony data still.  I"m guessing the reset unloads a bunch of stuff before
+                    // the actual reset could finish (or something...?) 
+                    // this ensures the reset happens
+                    Personas.Reset();
 
-					// cheap imperfect heuristic to not include activities from the previous game.
-					// the start screen is not that valueable for context anyway.  its the start screen.
-					if (gameInput.ActivityFeed.Count > 0)
-						gameInput.ActivityFeed = ["The player restarted the game"];
-					gameInput.ColonyRoster = [];
-					gameInput.ColonySetting = "The player restarted the game";
-					gameInput.ResearchSummary = "";
-					gameInput.ResourceData = "";
-					gameInput.RoomsSummary = "";
-					gameInput.EnergySummary = "";
-					gameInput.PreviousHistoricalKeyEvents = [];
-					ReplaceHistory("The Player restarted the game");
-				}
+                    // cheap imperfect heuristic to not include activities from the previous game.
+                    // the start screen is not that valueable for context anyway.  its the start screen.
+                    if (gameInput.ActivityFeed.Count > 0)
+                        gameInput.ActivityFeed = ["玩家重新开始了游戏"];
+                    gameInput.ColonyRoster = [];
+                    gameInput.ColonySetting = "玩家重新开始了游戏";
+                    gameInput.ResearchSummary = "";
+                    gameInput.ResourceData = "";
+                    gameInput.RoomsSummary = "";
+                    gameInput.EnergySummary = "";
+                    gameInput.PreviousHistoricalKeyEvents = [];
+                    ReplaceHistory("玩家重新开始了游戏");
+                }
 
-			}
+            }
 
-			var systemPrompt = SystemPrompt(persona);
-			if (FrequencyPenalty > 1)
-			{
-				systemPrompt += "\nNOTE: You're being too repetitive, you need to review the data you have and come up with something new.";
-				systemPrompt += $"\nAVOID talking about anything related to this: {persona.lastSpokenText}";
-				history.AddItem("I've been too repetitive lately, I need to examine the data and stray lastSpokenText");
-			}
-			if (history.Count() > 5)
-			{
-				var newhistory = (await CondenseHistory(persona)).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList();
-				ReplaceHistory(newhistory);
-			}
+            var systemPrompt = SystemPrompt(persona);
+            if (FrequencyPenalty > 1)
+            {
+                systemPrompt += "\n注意：你的输出太重复了，你需要回顾一下你所掌握的数据，然后提出一些新东西。";
+                systemPrompt += $"\n避免谈论与此相关的任何事情： {persona.lastSpokenText}";
+                history.AddItem("我最近的输出太重复了，我需要检查数据和lastSpokenText");
+            }
+            if (history.Count() > 5)
+            {
+                var newhistory = (await CondenseHistory(persona)).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList();
+                ReplaceHistory(newhistory);
+            }
 
-			gameInput.PreviousHistoricalKeyEvents = history;
+            gameInput.PreviousHistoricalKeyEvents = history;
 			var input = JsonConvert.SerializeObject(gameInput, settings);
 
 			Logger.Message($"{(retry != 0 ? $"(retry:{retry} {retryReason})" : "")} prompt (FP:{FrequencyPenalty}) ({gameInput.ActivityFeed.Count()} activities) (persona:{persona.name}): {input}");
@@ -343,10 +344,10 @@ namespace RimGPT
 				Model = GetCurrentChatGPTModel(),
 				Messages =
 				[
-					new ChatMessage() { Role = "system", Content = $"You are an adversarial system, cleaning up history lists with a goal to remove repetitiveness and keep narration fresh for the following persona: {persona.personality}" },
-					new ChatMessage() { Role = "user", Content =  "Summarize the following events into a succinct sentence, focusing on outliers to reduce latching on to the most pronounced theme: " + String.Join("\n ", history)}
-				]
-			};
+					new ChatMessage() { Role = "system", Content = $"你是一个对抗系统，清理历史列表，目标是去除重复性并为以下角色保持叙述的新鲜感: {persona.personality}" },
+                    new ChatMessage() { Role = "user", Content =  "将以下事件总结成一个简洁的句子，侧重于异常值以减少对最显著主题的执着: " + String.Join("\n ", history)}
+                ]
+            };
 
 
 			var completionResponse = await OpenAIApi.CreateChatCompletion(request, error => Logger.Error(error));
@@ -389,7 +390,7 @@ namespace RimGPT
 				Model = modelId,
 				Messages =
 				[
-					new ChatMessage() { Role = "system", Content = "You are a creative poet answering in 12 words or less." },
+					new ChatMessage() { Role = "system", Content = "你是一个有创造力的诗人，回复两行诗。" },
 					new ChatMessage() { Role = "user", Content = input }
 				]
 			}, e => requestError = e);
@@ -412,8 +413,8 @@ namespace RimGPT
 		{
 			Tools.SafeAsync(async () =>
 			{
-				var prompt = "The player has just configured your OpenAI API key in the mod " +
-					 "RimGPT for Rimworld. Greet them with a short response!";
+				var prompt = "玩家刚刚在《Rimworld》中的RimGPT模组中配置了API KEY，" +
+                     "用简短的回复向他问好致意。";
 				var dummyAI = new AI();
 				var output = await dummyAI.SimplePrompt(prompt, userApiConfig, modelId);
 				callback(output.Item1 ?? output.Item2);
