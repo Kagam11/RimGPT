@@ -248,9 +248,10 @@ namespace RimGPT
 			}
 		}
 
-		public bool IsConfigured => userApiConfigs.Any(a => a.Active) && ((azureSpeechKey?.Length > 0 && azureSpeechRegion?.Length > 0) || showAsText);
+        //public bool IsConfigured => userApiConfigs.Any(a => a.Active) && ((azureSpeechKey?.Length > 0 && azureSpeechRegion?.Length > 0) || showAsText);
+        public bool IsConfigured => userApiConfigs.Any(a => a.Active) && showAsText;
 
-		public Vector2 scrollPosition = Vector2.zero;
+        public Vector2 scrollPosition = Vector2.zero;
 		public static Persona selected = null;
 		public static int selectedIndex = -1;
 		public static readonly Color listBackground = new(32 / 255f, 36 / 255f, 40 / 255f);
